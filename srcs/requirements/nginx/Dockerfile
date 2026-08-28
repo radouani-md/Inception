@@ -8,8 +8,8 @@ RUN mkdir -p /etc/nginx/ssl
 
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
-COPY certs/server.crt /etc/nginx/ssl/server.crt
+COPY --chmod=644 certs/server.crt /etc/nginx/ssl/server.crt
 
-COPY certs/server.key /etc/nginx/ssl/server.key
+COPY --chmod=600 certs/server.key /etc/nginx/ssl/server.key
 
 CMD ["nginx", "-g", "daemon off;"]
