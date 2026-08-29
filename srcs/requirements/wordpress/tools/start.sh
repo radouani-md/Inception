@@ -6,6 +6,11 @@ echo "Starting WordPress container..."
 
 mkdir -p /var/www/html
 
+until mysqladmin ping -h"mariadb" --silent; do
+    echo "[INFO] waiting for mariaDB database to be ready..."
+    sleep 3
+done
+
 if [ ! -f /var/www/html/wp-load.php ]; then
     echo "Downloading WordPress..."
 

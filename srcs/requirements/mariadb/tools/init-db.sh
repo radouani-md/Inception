@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# If a command fails, immediately stop the script
 set -e
 
 echo "Starting MariaDB temporarily..."
@@ -8,7 +9,11 @@ service mariadb start
 
 echo "Creating WordPress database..."
 
+# Send everything until the next EOF to this command as input.
+# '%' any host => MariaDB needs to allow the WordPress container to connect. 
+
 mariadb -u root << EOF
+
 CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
 
 CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
