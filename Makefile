@@ -17,6 +17,8 @@ build :
 
 down :
 	$(COMPOSE) down
+ps :
+	$(COMPOSE) ps
 
 clean :
 	$(COMPOSE) down --volumes --rmi all

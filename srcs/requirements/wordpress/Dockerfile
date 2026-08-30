@@ -6,6 +6,7 @@ RUN apt-get update && \
         php8.2-mysql \
         mariadb-client \
         curl \
+        wget \
         && rm -rf /var/lib/apt/lists/*
 
 RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \

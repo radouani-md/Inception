@@ -34,6 +34,14 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       DB_HOST: mariadb:3306
+      WP_URL: ${WP_URL}
+      WP_TITLE: ${WP_TITLE}
+      WP_ADMIN_USER: ${WP_ADMIN_USER}
+      WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL}
+      WP_AU_USER: ${WP_AU_USER}
+      WP_AU_EMAIL_USER: ${WP_AU_EMAIL_USER}
+      WP_AU_PASSWORD: ${WP_AU_PASSWORD}
 
     volumes:
       - wordpress-data:/var/www/html

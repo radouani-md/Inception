@@ -6,6 +6,8 @@ RUN apt-get update && \
 
 RUN mkdir -p /etc/nginx/ssl
 
+COPY small-portfolio/ /var/www/static/
+
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
 COPY --chmod=644 certs/server.crt /etc/nginx/ssl/server.crt
