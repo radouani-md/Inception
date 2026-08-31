@@ -61,6 +61,28 @@ if ! wp core is-installed --allow-root --path=/var/www/html; then
     --allow-root \
     --path=/var/www/html
 
+    echo "Installing Redis Object Cache..."
+
+    wp plugin install redis-cache \
+        --activate \
+        --allow-root \
+        --path=/var/www/html
+
+    wp config set WP_REDIS_HOST redis \
+        --type=constant \
+        --allow-root \
+        --path=/var/www/html
+
+    wp config set WP_REDIS_PORT 6379 \
+        --raw \
+        --type=constant \
+        --allow-root \
+        --path=/var/www/html
+
+    wp redis enable \
+        --allow-root \
+        --path=/var/www/html
+
 
 else
     echo "WordPress is already installed"

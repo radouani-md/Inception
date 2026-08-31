@@ -1,0 +1,57 @@
+# Redis Bonus — WordPress Redis Cache Tests
+
+1. Check Redis container
+docker compose ps redis
+
+2. Test Redis server
+docker exec redis redis-cli ping
+
+Expected:
+PONG
+
+3. Test Redis read/write
+docker exec redis redis-cli SET test hello
+docker exec redis redis-cli GET test
+
+Expected:
+OK
+"hello"
+
+Clean the test:
+docker exec redis redis-cli DEL test
+
+4. Test WordPress → Redis DNS
+docker exec wordpress getent hosts redis
+
+Expected:
+Redis container IP address
+
+5. Test WordPress → Redis port
+docker exec wordpress bash -c 'cat < /dev/null > /dev/tcp/redis/6379'
+
+Expected:
+No error
+
+6. Check PHP Redis extension
+docker exec wordpress php -m | grep redis
+
+Expected:
+redis
+
+7. Check WordPress Redis host
+docker exec wordpress wp config get WP_REDIS_HOST --allow-root --path=/var/www/html
+
+Expected:
+redis
+
+8. Check WordPress Redis port
+docker exec wordpress wp config get WP_REDIS_PORT --allow-root --path=/var/www/html
+
+Expected:
+6379
+
+9. Check WordPress Redis Object Cache
+docker exec wordpress wp redis status --allow-root --path=/var/www/html
+
+Expected:
+Redis/Object Cache is connected or enabled
