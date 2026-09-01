@@ -6,8 +6,8 @@ RUN apt-get update && \
 
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 
-COPY tools/init-db.sh /usr/local/bin/init-db.sh
+COPY tools/mariadb_scr.sh /usr/local/bin/mariadb_scr.sh
 
-RUN chmod +x /usr/local/bin/init-db.sh
+RUN chmod +x /usr/local/bin/mariadb_scr.sh
 
-ENTRYPOINT ["usr/local/bin/init-db.sh"]
+ENTRYPOINT ["usr/local/bin/mariadb_scr.sh"] 

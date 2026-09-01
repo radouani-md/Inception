@@ -7,12 +7,10 @@ RUN apt-get update && \
         php8.2-redis \
         mariadb-client \
         curl \
-        wget \
         && rm -rf /var/lib/apt/lists/*
 
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-    && chmod +x wp-cli.phar \
-    && mv wp-cli.phar /usr/local/bin/wp
+RUN curl https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /usr/local/bin/wp \
+   && chmod +x /usr/local/bin/wp
 
 COPY tools/start.sh /usr/local/bin/start.sh
 

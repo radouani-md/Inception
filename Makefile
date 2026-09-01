@@ -1,4 +1,3 @@
-
 DATA_PATH = /home/mradouan/data
 
 COMPOSE = docker compose -f srcs/docker-compose.yml
