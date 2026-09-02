@@ -260,14 +260,66 @@ WordPress environment is ready
 
 ## 3. SCRIPT
 
-### exec mariadbd --user=mysql
+### if [ ! -f /var/www/html/wp-load.php ]; then
 
-This command starts the MariaDB server.
+means:
 
-`mariadbd` is the main MariaDB server process. It runs the database server and accepts connections from other services, such as WordPress.
-`--user=mysql` This tells MariaDB to run the server process as the Linux user `mysql` instead of `root`.
-`exec` replaces the current Bash process with `mariadbd`.
+If WordPress's wp-load.php file does not exist, download WordPress.
 
-`exec` replaces the shell script process with `mariadbd`, making MariaDB the main PID 1 process of the container. `--user=mysql` makes the MariaDB server run as the `mysql` Linux user instead of root.
+### wp core download --allow-root --path=/var/www/html
+
+`core download` tells WP-CLI:
+
+Download the WordPress core files.
+
+It downloads files such as:
+
+wp-admin/
+wp-content/
+wp-includes/
+index.php
+wp-load.php
+...
+
+`--path=/var/www/html`  tells WP-CLI where to put the WordPress files.
+
+Download WordPress into /var/www/html.
+
+`--allow-root` Normally, WP-CLI doesn't want to be executed as the Linux root user because running applications as root can be a security risk.
+               But during your Docker container startup, your script may be running as root.
+
+tells WP-CLI:
+
+I know I'm running as root; allow me to execute anyway.
+
+### mysqladmin ping -h mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent
+
+
+Use the MariaDB administration tool to ping the MariaDB server located at the Docker host mariadb,
+and do it silently so that we can use the command's success/failure status.
+
+
+`ping` is a command provided by mysqladmin.
+
+It sends a request to the MySQL/MariaDB server to check whether the server is alive and responding.
+
+`-h mariadb` Check the MariaDB server at the host named mariadb
+
+`--silent` This tells mysqladmin to reduce/suppress normal output.
+
+We don't need:
+
+mysqld is alive
+
+### wp config create
+
+wp is WP-CLI, the command-line interface for WordPress.
+config create tells WP-CLI:
+
+Create a new wp-config.php file for this WordPress installation.
+
+### wp core is-installed
+
+`wp core is-installed` checks whether WordPress itself is installed and connected to its database.
 
 ### COMMANDS

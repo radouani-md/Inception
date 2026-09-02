@@ -13,7 +13,7 @@ if [ ! -f /var/www/html/wp-load.php ]; then
 fi
 echo " wordPress files are ready."
 
-until mysqladmin ping -h"mariadb" --silent; do
+until mysqladmin ping -h mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" --silent ; do
     echo "waiting for mariaDB database to be ready..."
     sleep 3
 done
