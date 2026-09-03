@@ -322,4 +322,61 @@ Create a new wp-config.php file for this WordPress installation.
 
 `wp core is-installed` checks whether WordPress itself is installed and connected to its database.
 
+### wp plugin install redis-cache --activate --allow-root --path=/var/www/html
+
+`wp` → The WP-CLI command-line tool used to manage WordPress.
+
+`plugin install` → Tells WP-CLI to install a WordPress plugin.
+
+`redis-cache` → The name of the Redis Object Cache plugin to install.
+
+`-activate `→ Activates the plugin immediately after installation.
+
+`--allow-root` → Allows WP-CLI to run as the root user. This is commonly needed inside Docker containers.
+
+`--path=/var/www/html` → Tells WP-CLI where the WordPress installation is located
+
+### wp config set WP_REDIS_HOST redis --type=constant --allow-root --path=/var/www/html
+
+`wp` → WP-CLI.
+
+`config set` → Adds or changes a configuration value in wp-config.php.
+
+`WP_REDIS_HOST` → The configuration variable that specifies where the Redis server is located.
+
+`redis` → The hostname of the Redis service/container on the Docker network.
+
+`--type=constant` → Creates the value as a PHP constant:
+
+
+### wp config set WP_REDIS_PORT 6379 --raw --type=constant --allow-root --path=/var/www/html
+
+`wp` → WP-CLI.
+
+`config set` → Adds or changes a configuration value in wp-config.php.
+
+`WP_REDIS_PORT` → The configuration variable specifying the Redis server port.
+
+`6379` → Redis's default TCP port.
+
+`--raw` → Tells WP-CLI to treat 6379 as a raw PHP value rather than a string.
+
+-`-type=constant` → Creates a PHP constant:
+
+### exec php-fpm8.2 -F
+
+`exec` tells the shell Replace yourself with this process
+
+`exec php-fpm8.2`
+
+This starts PHP-FPM 8.2.
+
+PHP-FPM means: PHP FastCGI Process Manager
+
+Its job is to run PHP scripts and communicate with NGINX through FastCGI.
+
+`-F` means: Run PHP-FPM in the foreground.
+
+Normally, PHP-FPM can run as a daemon, meaning it starts and then goes into the background.
+
 ### COMMANDS
