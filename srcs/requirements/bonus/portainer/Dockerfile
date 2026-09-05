@@ -12,6 +12,6 @@ RUN wget https://github.com/portainer/portainer/releases/download/2.39.1/portain
     tar -xzf /tmp/portainer.tar.gz -C /opt/portainer --strip-components=1 && \
     rm /tmp/portainer.tar.gz
 
-EXPOSE 9000
+# EXPOSE 9000
 
 CMD ["/opt/portainer/portainer"]

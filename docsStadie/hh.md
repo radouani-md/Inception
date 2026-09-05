@@ -1,169 +1,4 @@
-# NGINX
-
-NGINX is the web server and reverse proxy used as the entry point to the infrastructure. It receives HTTPS requests from the client and forwards PHP requests to the WordPress/PHP-FPM container.
-
-The general architecture is:
-
-```text
-Browser
-   |
-   | HTTPS :443
-   v
-NGINX
-   |
-   | FastCGI
-   v
-WordPress + PHP-FPM
-   |
-   +------> MariaDB
-   |
-   +------> Redis
-```
-
-
-## Dockerfile Explanation
-
-
-Installs:
-
-- `nginx` → the web server.
-- `openssl` → tools used to create and manage TLS certificates and private keys.
-
-The `-y` option automatically answers `yes` to the installation confirmation.
-
-#### `rm -rf /var/lib/apt/lists/*`
-
-Removes the downloaded package lists after installation.
-
-These lists are no longer needed, so removing them reduces the image size.
-
----
-
-### Create the SSL directory
-
-```dockerfile
-RUN mkdir -p /etc/nginx/ssl
-```
-
-Creates the directory where NGINX will store the TLS certificate and private key:
-
-```text
-/etc/nginx/ssl/
-├── server.crt
-└── server.key
-```
-
----
-
-### Copy the NGINX configuration
-
-```dockerfile
-COPY conf/nginx.conf /etc/nginx/nginx.conf
-```
-
-Copies the NGINX configuration from the project into the container.
-
-The source file is:
-
-```text
-conf/nginx.conf
-```
-
-and the destination is:
-
-```text
-/etc/nginx/nginx.conf
-```
-
-This is the configuration NGINX uses when it starts.
-
----
-
-### Copy the TLS certificate
-
-```dockerfile
-COPY --chmod=644 certs/server.crt /etc/nginx/ssl/server.crt
-```
-
-Copies the certificate into the container.
-
-The `644` permissions mean:
-
-```text
-rw-r--r--
-```
-
-The owner can read and write the file, while the group and other users can read it.
-
-The certificate is not secret, so it can be readable.
-
----
-
-### Copy the private key
-
-```dockerfile
-COPY --chmod=600 certs/server.key /etc/nginx/ssl/server.key
-```
-
-Copies the private TLS key into the container.
-
-The `600` permissions mean:
-
-```text
-rw-------
-```
-
-Only the owner can read or modify the file.
-
-The private key must be protected because it is secret cryptographic information.
-
-Therefore:
-
-```text
-server.crt → public certificate → 644
-server.key → private key        → 600
-```
-
----
-
-### Start NGINX
-
-```dockerfile
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-Starts NGINX when the container starts.
-
-#### `nginx`
-
-Starts the NGINX server.
-
-#### `-g`
-
-Allows a global NGINX configuration directive to be specified from the command line.
-
-#### `daemon off;`
-
-Normally NGINX runs as a daemon and moves into the background.
-
-In Docker, we want NGINX to remain in the foreground so that it stays as the main process of the container.
-
-```text
-Docker container
-       |
-       v
-   NGINX
-       |
-       └── foreground
-```
-
-This allows Docker to monitor and manage the NGINX process correctly.
-
----
-
-## Nginx config
-
-### 1. Nginx Configuration
+# 1. Nginx Configuration
 
 This Nginx configuration is the HTTPS entry point of your Inception project. Its main job is:
 
@@ -171,7 +6,7 @@ Client → Nginx (HTTPS :443) → PHP-FPM in WordPress/Adminer containers
 
 Let's go line by line.
 
-#### server { ... }
+## server { ... }
 
 ```
 server {
@@ -183,7 +18,7 @@ It tells Nginx:
 
 "When a request matches these conditions, handle it using these rules."
 
-#### listen 443 ssl;
+## listen 443 ssl;
 
 ```
 listen 443 ssl;
@@ -208,7 +43,7 @@ The important point is that TLS is terminated by Nginx.
 
 The browser establishes the encrypted TLS connection with Nginx.
 
-#### server_name
+## server_name
 
 ```
 server_name mradouan.42.fr;
@@ -229,7 +64,7 @@ Host: mradouan.42.fr
 
 Nginx uses the `Host` header to determine which server block should handle the request.
 
-#### Document root
+## Document root
 
 ```
 root /var/www/html;
@@ -255,7 +90,7 @@ the corresponding filesystem path is:
 
 However, PHP files are handled by the PHP location below rather than served directly.
 
-#### index
+## index
 
 ```
 index index.php index.html;
@@ -279,7 +114,7 @@ If it doesn't find it, it checks:
 
 For WordPress, `index.php` is normally the important one.
 
-#### SSL certificate
+## SSL certificate
 
 ```
 ssl_certificate /etc/nginx/ssl/server.crt;
@@ -291,7 +126,7 @@ The certificate is presented to the browser during the TLS handshake.
 
 The browser uses it to verify the identity of the server and establish encrypted communication.
 
-#### SSL private key
+## SSL private key
 
 ```
 ssl_certificate_key /etc/nginx/ssl/server.key;
@@ -311,7 +146,7 @@ server.key
 TLS/HTTPS
 ```
 
-#### TLS versions
+## TLS versions
 
 ```
 ssl_protocols TLSv1.2 TLSv1.3;
@@ -330,7 +165,7 @@ Older protocols such as TLS 1.0 and TLS 1.1 are disabled.
 
 This is also an important part of the 42 Inception requirement.
 
-#### PHP location
+## PHP location
 
 ```
 location ~ \.php$ {
@@ -355,7 +190,7 @@ For example:
 
 So PHP requests enter this block.
 
-#### include fastcgi_params
+## include fastcgi_params
 
 ```
 include fastcgi_params;
@@ -375,7 +210,7 @@ etc.
 
 Nginx needs these because PHP-FPM needs information about the HTTP request in order to execute the PHP script correctly.
 
-#### fastcgi_pass
+## fastcgi_pass
 
 ```
 fastcgi_pass wordpress:9000;
@@ -421,7 +256,7 @@ Nginx receives the request and forwards the PHP request to PHP-FPM.
 
 PHP-FPM executes the PHP code and returns the result to Nginx.
 
-#### SCRIPT_FILENAME
+## SCRIPT_FILENAME
 
 ```
 fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
@@ -433,7 +268,7 @@ This tells PHP-FPM:
 
 There are two variables here.
 
-##### $document_root
+### $document_root
 
 Because you defined:
 
@@ -445,7 +280,7 @@ we have:
 
 `$document_root = /var/www/html`
 
-##### $fastcgi_script_name
+### $fastcgi_script_name
 
 This represents the requested PHP path.
 
@@ -469,7 +304,7 @@ So Nginx tells PHP-FPM:
 
 Execute: `/var/www/html/index.php`
 
-#### Your comment
+## Your comment
 
 You wrote:
 
@@ -501,7 +336,7 @@ SCRIPT_FILENAME
 /var/www/html/index.php
 ```
 
-#### Adminer location
+## Adminer location
 
 Now this part is different:
 
@@ -529,7 +364,7 @@ It does not generally match:
 
 because this is an exact-match location.
 
-#### FastCGI parameters for Adminer
+## FastCGI parameters for Adminer
 
 ```
 include fastcgi_params;
@@ -539,7 +374,7 @@ Same idea as before.
 
 Nginx prepares the request information that PHP-FPM needs.
 
-#### Send Adminer request to Adminer container
+## Send Adminer request to Adminer container
 
 ```
 fastcgi_pass adminer:9000;
@@ -573,7 +408,7 @@ PHP-FPM
 Adminer PHP application
 ```
 
-#### Adminer SCRIPT_FILENAME
+## Adminer SCRIPT_FILENAME
 
 ```
 fastcgi_param SCRIPT_FILENAME /var/www/html/index.php;
@@ -591,7 +426,7 @@ You're saying directly:
 
 This is useful because Adminer is distributed as essentially a single PHP application file, commonly named `index.php`.
 
-#### The complete flow
+## The complete flow
 
 When you open:
 
@@ -637,6 +472,6 @@ adminer:9000
 Adminer /var/www/html/index.php
 ```
 
-#### Simple defense definition
+## Simple defense definition
 
 Nginx is the HTTPS reverse proxy and web server. It listens on port 443, handles TLS, serves static files, and forwards PHP requests to the appropriate PHP-FPM container using FastCGI. WordPress requests go to `wordpress:9000`, while `/adminer` requests go to `adminer:9000`.

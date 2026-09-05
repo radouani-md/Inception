@@ -252,6 +252,16 @@ Install dependencies
 WordPress environment is ready
 ```
 
+```
+RUN curl URL -o /usr/local/bin/wp \
+&& chmod +x /usr/local/bin/wp
+```
+
+means:
+
+During the Docker image build, download WP-CLI into /usr/local/bin/wp, then give it permission to execute.
+
+
 ---
 
 # Defense Answer
@@ -378,5 +388,27 @@ Its job is to run PHP scripts and communicate with NGINX through FastCGI.
 `-F` means: Run PHP-FPM in the foreground.
 
 Normally, PHP-FPM can run as a daemon, meaning it starts and then goes into the background.
+
+### How to generate the certificate (public key and private key)
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/server.key \
+    -out /etc/nginx/ssl/server.crt
+
+`req` means certificate request
+
+`-x509` This tells OpenSSL to Create an X.509 certificate directly (self-signed).
+
+`-nodes` Do not encrypt the private key with a password
+         Without -nodes, OpenSSL may ask for a password to protect the private key.
+         That would be inconvenient for NGINX because NGINX would need the password when starting.
+
+`-newkey rsa:2048` This tells OpenSSL to create a new RSA private key. 
+                     rsa = RSA cryptographic algorithm.
+                     2048 = key size in bits
+
+`-keyout` path /etc/nginx/ssl/server.key to the private key          
+
+`-out` path /etc/nginx/ssl/server.crt to the certificate
 
 ### COMMANDS
