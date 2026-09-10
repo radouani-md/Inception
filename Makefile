@@ -10,7 +10,7 @@ all :
 
 
 up : 
-	$(COMPOSE) up -d
+	$(COMPOSE) up --build -d
 
 build :
 	$(COMPOSE) build
