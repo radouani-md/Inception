@@ -5,6 +5,8 @@ services:
     depends_on:
       - wordpress
 
+    image: nginx:version
+
     ports:
       - "443:443"
     container_name: nginx
@@ -23,6 +25,8 @@ services:
       context: requirements/wordpress
     
     container_name: wordpress
+
+    image: wordpress:version
 
     restart: on-failure
 
@@ -56,6 +60,8 @@ services:
     
     container_name: mariadb
 
+    image: :version
+
     restart: on-failure
 
     volumes:
@@ -77,6 +83,8 @@ services:
     
     container_name: portfolio
 
+    image: portfolio:version
+
     ports:
       - 80:80
 
@@ -87,7 +95,9 @@ services:
       context: requirements/bonus/adminer
     
     container_name: adminer
-  
+
+    image: adminer:version
+
     networks:
       - inception-network
 
@@ -102,6 +112,8 @@ services:
     
     container_name: redis
 
+    image: redis:version
+
     networks:
       - inception-network
 
@@ -112,6 +124,8 @@ services:
       context: ./requirements/bonus/portainer
 
     container_name: portainer
+
+    image: :version
 
     restart: always
 

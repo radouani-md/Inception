@@ -6,8 +6,7 @@ RUN apt-get update && \
 
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 
-COPY tools/mariadb_scr.sh /usr/local/bin/mariadb_scr.sh
+COPY --chmod=755 tools/mariadb_scr.sh /usr/local/bin/mariadb_scr.sh
 
-RUN chmod +x /usr/local/bin/mariadb_scr.sh
 
-ENTRYPOINT ["usr/local/bin/mariadb_scr.sh"] 
+ENTRYPOINT ["usr/local/bin/mariadb_scr.sh"]

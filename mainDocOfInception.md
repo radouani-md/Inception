@@ -2492,3 +2492,1173 @@ Persistent data
 The main idea you should leave this lesson with is:
 
 The image is the immutable template, the container is the running instance, the writable layer contains temporary changes, volumes preserve important data, and PID 1 is responsible for the main process inside the container.
+
+Chapter 5 — Networking & Storage
+
+The main idea of this chapter is:
+
+A container is isolated, but for Inception it must communicate with other containers and preserve important data.
+
+Your Inception architecture is basically:
+
+```
+                    INTERNET / BROWSER
+                           │
+                           │ HTTPS :443
+                           ▼
+                    ┌─────────────┐
+                    │    NGINX    │
+                    │  Container  │
+                    └──────┬──────┘
+                           │
+                    Docker Network
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+       ┌─────────────┐          ┌─────────────┐
+       │  WordPress  │          │   MariaDB   │
+       │   PHP-FPM   │          │   Database  │
+       └──────┬──────┘          └──────┬──────┘
+              │                        │
+              ▼                        ▼
+       WordPress Volume         MariaDB Volume
+```
+
+So there are two big problems:
+
+Networking: How do NGINX, WordPress and MariaDB communicate?
+Storage: How does MariaDB keep its data if the container is deleted?
+
+The document describes exactly these two problems.
+
+1. Docker Networking
+Why do we need a Docker network?
+
+Remember what we learned about namespaces.
+
+Each container has its own network namespace.
+
+So imagine:
+
+NGINX container
+```
+┌──────────────────────┐
+│ Network namespace    │
+│                      │
+│ eth0                 │
+│ IP: 172.x.x.x        │
+└──────────────────────┘
+```
+
+WordPress container
+```
+┌──────────────────────┐
+│ Network namespace    │
+│                      │
+│ eth0                 │
+│ IP: 172.x.x.x        │
+└──────────────────────┘
+```
+
+They are isolated from each other.
+
+But your Inception architecture requires:
+
+```
+NGINX ──────► WordPress
+WordPress ──► MariaDB
+```
+
+Therefore Docker needs to create a network connecting these containers.
+
+2. Docker Network = Virtual Network
+
+When you create:
+
+```
+docker network create inception
+```
+
+Docker creates a virtual network.
+
+Then:
+
+```
+docker run --network=inception ...
+```
+
+connects a container to that network.
+
+You can imagine it as a virtual switch:
+
+```
+                 Docker Network
+              ┌──────────────────┐
+              │                  │
+              │  virtual switch  │
+              │                  │
+              └─┬────────┬──────┬┘
+                │        │      │
+                ▼        ▼      ▼
+              NGINX   WordPress MariaDB
+```
+
+Containers connected to the same Docker network can communicate with each other.
+
+This is one of the most important networking concepts for Inception.
+
+3. The three concepts: Sandbox, Endpoint, Network
+
+Your document introduces Docker's Container Network Model (CNM) and its three objects: Sandbox, Endpoint and Network.
+
+You don't need to memorize the entire CNM architecture for Inception.
+
+But you should understand the basic mapping:
+
+| Docker concept | Linux implementation |
+|---|---|
+| Sandbox | Network namespace |
+| Endpoint | Connection/interface to the network, commonly involving a veth |
+| Network | Virtual network / Linux bridge for bridge networking |
+
+The most important one for you is:
+
+Sandbox = network namespace
+
+You already learned network namespaces, so this connects the chapters.
+
+4. How does the container physically connect to the network?
+
+This is where veth pairs are important.
+
+A veth pair is basically a virtual cable with two ends.
+
+```
+Container                         Host
+┌──────────────┐                 ┌──────────────┐
+│              │                 │              │
+│    eth0      │=================│    veth...   │
+│              │   virtual cable │              │
+└──────────────┘                 └──────┬───────┘
+                                        │
+                                        ▼
+                                  Docker bridge
+```
+
+One end is inside the container:
+
+eth0
+
+The other end exists in the host network namespace.
+
+The document describes exactly this relationship.
+
+5. What's the Linux Bridge?
+
+The host needs something to connect those virtual cables.
+
+That's the Linux bridge.
+
+Think about a physical Ethernet switch:
+
+```
+PC1 ─────┐
+PC2 ─────┼── Switch
+PC3 ─────┘
+```
+
+Docker can create the equivalent virtually:
+
+```
+Container A
+     │
+    veth
+     │
+     ▼
+┌──────────────┐
+│ Linux Bridge │
+└──────────────┘
+     ▲
+     │
+    veth
+     │
+Container B
+```
+
+For Docker's default bridge networking, you may see:
+
+docker0
+
+The document uses docker0 as the example bridge.
+
+Important for Inception
+
+You don't need to manually create veth pairs or bridges.
+
+Docker does this for you.
+
+When you create and attach containers to a Docker network, Docker configures the underlying networking.
+
+6. Container-to-container communication
+
+This is very important for your Inception defense.
+
+Imagine:
+
+NGINX
+172.x.x.2
+
+WordPress
+172.x.x.3
+
+MariaDB
+172.x.x.4
+
+All three are connected to:
+
+inception-network
+
+Then:
+
+```
+NGINX ──────────────► WordPress
+                         │
+                         ▼
+                      MariaDB
+```
+
+The communication happens through the Docker network.
+
+It doesn't need to go out to the internet.
+
+The document describes same-network container communication as traffic that stays within the host and goes through the virtual bridge.
+
+7. VERY IMPORTANT: Container names and DNS
+
+This is something you should know for Inception.
+
+Suppose your Compose services are:
+
+```
+services:
+  nginx:
+  wordpress:
+  mariadb:
+```
+
+Docker's network provides service-name-based discovery.
+
+So WordPress can connect to MariaDB using something like:
+
+mariadb
+
+rather than manually knowing:
+
+172.18.0.4
+
+For example:
+
+```
+WordPress
+    │
+    │ database host = mariadb
+    ▼
+Docker DNS
+    │
+    ▼
+MariaDB container IP
+```
+
+This is why in your WordPress configuration you can use:
+
+DB_HOST=mariadb
+
+instead of hardcoding an IP address.
+
+Why is this better?
+
+Because the container IP can change when the container is recreated.
+
+The service name remains the stable way to reach it on the Docker network.
+
+8. Port publishing — -p
+
+Now we have another question:
+
+How does my browser on the host reach NGINX inside the container?
+
+That's where port publishing comes in.
+
+For example:
+
+```
+docker run -p 443:443 nginx
+```
+
+means:
+
+```
+HOST                     CONTAINER
+
+Port 443  ──────────────► Port 443
+```
+
+So:
+
+```
+Browser
+   │
+   │ HTTPS :443
+   ▼
+Host :443
+   │
+   │ Docker networking/NAT
+   ▼
+NGINX container :443
+```
+
+Your document describes this as inbound port mapping / DNAT.
+
+In Inception
+
+This is important because NGINX is the entry point.
+
+Typically:
+
+```
+Internet
+   │
+   ▼
+Host :443
+   │
+   ▼
+NGINX container :443
+```
+
+But WordPress and MariaDB don't need to be exposed to the host.
+
+You want:
+
+```
+Internet
+    │
+    ▼
+  NGINX
+    │
+    ▼
+WordPress
+    │
+    ▼
+MariaDB
+```
+
+not:
+
+```
+Internet
+   ├──► NGINX
+   ├──► WordPress
+   └──► MariaDB
+```
+
+That's a useful security principle for your project.
+
+9. Container outbound Internet access
+
+The document also explains NAT for when a container wants to access the Internet.
+
+For example, your WordPress container might need to download WordPress:
+
+```
+WordPress container
+       │
+       ▼
+Docker network
+       │
+       ▼
+Host
+       │
+       ▼
+Internet
+```
+
+The container might have a private address such as:
+
+172.x.x.x
+
+The host performs address translation so external servers can reply.
+
+You don't need to memorize the packet-by-packet conntrack mechanics for Inception.
+
+Just understand:
+
+Docker can use NAT to allow containers with private IP addresses to communicate with the outside network.
+
+10. Storage — Why volumes are necessary
+
+Now we move to the second major part.
+
+Remember:
+
+```
+Container writable layer
+        │
+        ▼
+temporary
+```
+
+If the container is deleted, its writable layer disappears.
+
+That's a disaster for MariaDB.
+
+Imagine:
+
+```
+MariaDB container
+      │
+      ├── database
+      ├── users
+      ├── tables
+      └── WordPress data
+```
+
+If all of that exists only inside the container:
+
+```
+docker rm mariadb
+```
+
+💥 Data disappears.
+
+So Inception requires persistent storage.
+
+11. Docker Volume
+
+A volume gives the container a place to store persistent data outside its ephemeral writable layer.
+
+Conceptually:
+
+```
+                 MariaDB Container
+                ┌─────────────────┐
+                │                 │
+                │    mariadbd     │
+                │                 │
+                └────────┬────────┘
+                         │
+                         │ mount
+                         ▼
+                  ┌──────────────┐
+                  │    Volume    │
+                  │              │
+                  │ MariaDB data │
+                  └──────────────┘
+```
+
+Now:
+
+```
+docker rm mariadb
+```
+
+doesn't automatically destroy the volume.
+
+Create a new MariaDB container and mount the same volume:
+
+```
+New MariaDB container
+          │
+          ▼
+    Same volume
+          │
+          ▼
+    Same database
+```
+
+This is critical for your Inception project.
+
+12. Your Inception volumes
+
+You have two important persistent areas:
+
+```
+MariaDB
+    │
+    ▼
+mariadb-data volume
+
+
+WordPress
+    │
+    ▼
+wordpress-data volume
+```
+
+Conceptually:
+
+```
+┌─────────────────────┐
+│ MariaDB container   │
+└──────────┬──────────┘
+           │
+           ▼
+     MariaDB volume
+
+
+┌─────────────────────┐
+│ WordPress container │
+└──────────┬──────────┘
+           │
+           ▼
+    WordPress volume
+```
+
+This satisfies the fundamental requirement:
+
+Container = disposable
+Data = persistent
+
+13. Volume vs container writable layer
+
+This distinction is defense gold.
+
+Container writable layer
+```
+Container
+    │
+    ▼
+Writable layer
+    │
+    ▼
+temporary
+```
+Volume
+```
+Container
+    │
+    ▼
+Volume
+    │
+    ▼
+persistent
+```
+
+So if the examiner asks:
+
+"What happens to data when you delete a container?"
+
+Answer:
+
+Data stored in the container's writable layer is lost, but data stored in a Docker volume persists independently of the container.
+
+14. What about bind mounts?
+
+The document says it will go into bind mounts and volumes, but the provided part mainly develops the networking section and introduces persistent storage.
+
+For your Inception project, the important point is that your subject requires named Docker volumes, not simply bind-mounting arbitrary host directories.
+
+Your subject also requires those volume data directories to ultimately live under:
+
+/home/login/data
+
+on the host.
+
+So your architecture is:
+
+```
+Host
+└── /home/login/data
+      │
+      ├── mariadb
+      │     └── database files
+      │
+      └── wordpress
+            └── WordPress files
+```
+
+with Docker named volumes managing those mounts.
+
+🧠 The networking architecture you should understand
+
+For your defense, picture this:
+
+```
+                         HOST
+              ┌────────────────────────┐
+              │                        │
+Internet ───► │ :443                   │
+              │   │                    │
+              │   ▼                    │
+              │ NGINX container        │
+              │   │                    │
+              │   │ Docker Network     │
+              │   ▼                    │
+              │ WordPress container    │
+              │   │                    │
+              │   ▼                    │
+              │ MariaDB container      │
+              │                        │
+              └────────────────────────┘
+                         │
+                         │
+                 persistent volumes
+                         │
+                  ┌──────┴──────┐
+                  ▼             ▼
+               WordPress     MariaDB
+                volume        volume
+```
+
+These are interesting Docker/network engineering topics, but they're far beyond what you need to defend Inception.
+
+🔥 What you MUST know
+1. Network namespace
+
+Each container has an isolated network stack.
+
+2. Docker network
+
+A Docker network connects containers so they can communicate with each other.
+
+3. veth pair
+
+A veth pair acts like a virtual cable connecting the container's network namespace to the host/network bridge.
+
+4. Linux bridge
+
+A Linux bridge acts like a virtual network switch connecting containers on a bridge network.
+
+5. Port publishing
+```
+-p 443:443
+```
+
+means:
+
+Host port 443 → container port 443.
+
+6. Container-to-container communication
+```
+WordPress → mariadb:3306
+```
+
+They communicate through their shared Docker network.
+
+7. DNS/service name
+
+Docker's network DNS allows containers to reach services by name instead of relying on changing container IP addresses.
+
+8. Volume
+
+A volume provides persistent storage independent of the container's writable layer.
+
+🗣️ Defense version
+
+If the examiner asks:
+
+"How do your containers communicate?"
+
+You can say:
+
+Each container has its own network namespace. I connect my NGINX, WordPress and MariaDB containers to the same Docker network. Docker creates the necessary virtual networking, allowing the containers to communicate using their service names. NGINX is exposed to the outside through port 443, while WordPress and MariaDB communicate internally through the Docker network.
+
+If they ask:
+
+"Why do you use volumes?"
+
+Say:
+
+The writable layer of a container is ephemeral, so data stored there can be lost when the container is removed. I use named Docker volumes for WordPress and MariaDB so the important data persists independently from the containers.
+
+And the one sentence to remember:
+
+🔥 Docker networks provide communication between isolated containers, while Docker volumes provide persistent storage for data that must survive container recreation.
+
+This section is about Docker networking drivers. For your 42 Inception, you mainly need to understand Bridge, because that is the normal way your NGINX, WordPress, and MariaDB containers communicate.
+
+I’ll focus on what matters for Inception and keep the other drivers brief.
+
+5. Networking Drivers
+
+A network driver tells Docker how a container gets its network connectivity.
+
+Think of it like choosing how a container connects to the network:
+
+```
+                    Docker Network Driver
+                            |
+          +-----------------+----------------+
+          |                 |                |
+        bridge             host             none
+          |                 |                |
+   isolated network    host network     no network
+```
+
+For Inception:
+
+```
+             Docker Bridge Network
+                     |
+        +------------+------------+
+        |            |            |
+      NGINX       WordPress     MariaDB
+        |
+      HTTPS
+      :443
+```
+5.1 Bridge Driver ⭐⭐⭐
+
+This is the most important one for Inception.
+
+The Bridge driver creates an isolated network for containers.
+
+For example:
+
+```
+docker network create inception
+```
+
+Then:
+
+```
+docker run --network inception nginx
+docker run --network inception wordpress
+docker run --network inception mariadb
+```
+
+Now the three containers are connected to the same Docker network.
+
+What happens internally?
+
+Each container still has its own network namespace.
+
+```
+                    HOST
+        +-----------------------------+
+        |                             |
+        |      Docker Bridge          |
+        |          (switch)           |
+        |             |               |
+        |       +-----+-----+          |
+        |       |           |          |
+        |     veth         veth        |
+        |       |           |          |
+        |   +-------+   +-------+      |
+        |   |NGINX  |   |WordPress|    |
+        |   | netns  |   | netns   |    |
+        |   +-------+   +-------+      |
+        |                             |
+        +-----------------------------+
+```
+
+The important pieces are:
+
+1. Network namespace
+
+Each container gets its own network environment.
+
+For example:
+
+```
+NGINX namespace
+    eth0
+    IP: 172.x.x.x
+
+WordPress namespace
+    eth0
+    IP: 172.x.x.x
+
+MariaDB namespace
+    eth0
+    IP: 172.x.x.x
+```
+
+They don't directly share the host's network interfaces.
+
+2. veth pair
+
+Docker creates a virtual Ethernet pair.
+
+You can think of it as a virtual cable:
+
+```
+Container eth0
+      |
+      | virtual cable
+      |
+    veth
+      |
+      |
+Docker bridge
+```
+3. Bridge
+
+The bridge acts roughly like a virtual network switch.
+
+It allows containers attached to the same bridge network to communicate.
+
+Why Bridge is important for Inception
+
+Your architecture is basically:
+
+```
+                    Internet
+                       |
+                     HTTPS
+                      :443
+                       |
+                    NGINX
+                       |
+                Docker Network
+                       |
+             +---------+---------+
+             |                   |
+         WordPress             MariaDB
+          PHP-FPM              database
+```
+
+NGINX does not need to communicate with MariaDB directly.
+
+Instead:
+
+```
+Client
+  |
+  | HTTPS :443
+  v
+NGINX
+  |
+  | HTTP/FastCGI
+  v
+WordPress/PHP-FPM
+  |
+  | MySQL/MariaDB protocol
+  v
+MariaDB
+```
+
+All the internal communication happens through the Docker network.
+
+Docker DNS ⭐⭐⭐
+
+This is particularly important for your defense.
+
+Suppose MariaDB's container IP is:
+
+172.20.0.3
+
+You shouldn't configure WordPress like this:
+
+DB_HOST=172.20.0.3
+
+Because the container's IP can change when the container is recreated.
+
+Instead, Docker provides DNS for the Docker network.
+
+You can use:
+
+DB_HOST=mariadb
+
+Docker resolves:
+
+```
+mariadb
+    ↓
+172.20.0.3
+```
+
+So:
+
+```
+WordPress
+    |
+    | "mariadb"
+    v
+Docker DNS
+    |
+    | resolves name
+    v
+MariaDB container
+```
+
+This is one of the most useful things to understand for Inception.
+
+What about outside communication?
+
+Your containers can also communicate with the outside world.
+
+For example, your WordPress container might need to download WordPress:
+
+```
+WordPress
+    |
+    v
+Docker network
+    |
+    v
+Host networking/NAT
+    |
+    v
+Internet
+```
+
+Docker can use NAT/masquerading to allow this.
+
+You don't need to memorize the detailed packet/iptables mechanics for Inception.
+
+Port Publishing
+
+This is another important distinction.
+
+Suppose your NGINX container listens on:
+
+443
+
+You can publish it:
+
+-p 443:443
+
+Meaning:
+
+```
+HOST                         CONTAINER
+
+Port 443  -----------------> Port 443
+             Docker NAT
+```
+
+So an external client can do:
+
+```
+https://your-domain
+        |
+        v
+Host :443
+        |
+        v
+NGINX container :443
+```
+
+But you don't need to publish MariaDB.
+
+For example, you don't need:
+
+-p 3306:3306
+
+because WordPress can reach MariaDB through the internal Docker network:
+
+```
+WordPress
+    |
+    | mariadb:3306
+    v
+MariaDB
+```
+
+This is also better from a security perspective: MariaDB isn't unnecessarily exposed to the host/network.
+
+5.2 Host Driver
+
+This is much less important for Inception.
+
+With:
+
+docker run --network host nginx
+
+Docker doesn't give the container its own network namespace.
+
+Instead:
+
+```
+              HOST NETWORK
+        +-----------------------+
+        |                       |
+        | eth0                  |
+        | IP address            |
+        | ports                 |
+        |                       |
+        |      NGINX             |
+        |                       |
+        +-----------------------+
+```
+
+The container uses the host's network directly.
+
+There is no:
+
+```
+Container network namespace
+        ↓
+      veth
+        ↓
+      bridge
+```
+
+Instead:
+
+```
+NGINX
+  |
+  v
+Host network
+```
+Important consequence
+
+If NGINX listens on:
+
+80
+
+it is listening directly on the host's port 80.
+
+There is no:
+
+-p 8080:80
+
+mapping needed.
+
+Why isn't this what you want for Inception?
+
+Because you want isolation between your services.
+
+You want:
+
+```
+NGINX
+  |
+  | Docker network
+  v
+WordPress
+  |
+  | Docker network
+  v
+MariaDB
+```
+
+not:
+
+```
+              HOST NETWORK
+       +-----------------------+
+       | NGINX                 |
+       | WordPress             |
+       | MariaDB               |
+       +-----------------------+
+```
+
+Host networking removes an important part of container network isolation.
+
+So for your Inception defense:
+
+I use a Docker network rather than host networking because I want my containers to have isolated network namespaces while still being able to communicate with each other.
+
+5.3 None Driver
+
+You can create a container with:
+
+docker run --network none ...
+
+The container gets a network namespace but essentially no external network connectivity.
+
+It basically has:
+
+```
+Container
+   |
+   +--- lo (loopback)
+```
+
+No normal:
+
+eth0
+
+No connection to the Docker network.
+
+This is useful when a container doesn't need networking.
+
+But that's not your Inception architecture.
+
+Your services need to communicate:
+
+NGINX <----> WordPress <----> MariaDB
+
+So none isn't appropriate.
+
+What do you actually need to know for Inception?
+⭐⭐⭐ Bridge
+
+MUST KNOW
+
+Containers have isolated network namespaces.
+Docker creates the networking between them.
+A bridge acts like a virtual switch.
+veth pairs connect container namespaces to the bridge.
+Containers on the same Docker network can communicate.
+Docker DNS lets you use container/service names such as mariadb.
+Port publishing exposes a container service to the outside.
+⭐ Host
+
+Know the concept only.
+
+--network host
+
+means:
+
+The container shares the host's network namespace.
+
+You don't need it for your Inception setup.
+
+⭐ None
+
+Know the concept only.
+
+--network none
+
+means:
+
+The container has no normal external network connectivity.
+
+You don't need it for your Inception setup.
+
+What you can skip for Inception
+
+You don't need to spend time studying:
+
+Detailed bridge implementation
+Detailed NAT/iptables rules
+Packet-by-packet routing
+Performance benchmarks between drivers
+Advanced custom network drivers
+Overlay networks
+VXLAN
+Macvlan/IPvlan
+Advanced network security architectures
+
+Those are useful for advanced Docker/network engineering, but not necessary to defend the standard Inception project.
+
+Defense version 🎤
+
+If the evaluator asks:
+
+"Which network driver do you use?"
+
+I use a Docker bridge network. It gives each container its own network namespace while allowing containers connected to the same network to communicate.
+
+"How do your containers communicate?"
+
+Docker connects their network namespaces through virtual Ethernet interfaces and a bridge. Docker also provides DNS, so containers can communicate using service names instead of hardcoded IP addresses.
+
+"Why does WordPress use mariadb instead of an IP?"
+
+Because Docker provides DNS resolution for containers on the same network. The name mariadb resolves to the current IP address of the MariaDB container, so I don't depend on a fixed container IP.
+
+"Why don't you expose MariaDB to the host?"
+
+MariaDB only needs to be accessed by WordPress internally, so I don't need to publish port 3306. Keeping it inside the Docker network reduces unnecessary exposure.
+
+"What is host networking?"
+
+It makes the container share the host's network namespace, so the container uses the host's network interfaces and ports directly. I don't use it because I want network isolation between my containers.
+
+🧠 The one sentence to remember
+
+For Inception, I use a Docker bridge network to keep NGINX, WordPress, and MariaDB network-isolated while allowing them to communicate internally using Docker's DNS and service names.
