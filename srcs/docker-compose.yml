@@ -125,7 +125,7 @@ services:
 
     container_name: portainer
 
-    image: :version
+    image: portainer:version
 
     restart: always
 
