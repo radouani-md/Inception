@@ -7,7 +7,6 @@ RUN apt-get update && \
         curl \
         && rm -rf /var/lib/apt/lists/*
         
-        # replace wget with curl
 RUN mkdir -p /var/www/html
 
 RUN curl -L  https://www.adminer.org/latest.php -o /var/www/html/index.php \
