@@ -5,9 +5,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /etc/nginx/ssl && \
-    openssl req -x509 -newkey rsa:2048 -days 365 -nodes \
+    openssl req -x509 -nodes \
     -subj "/CN=mradouan.42.fr" \ 
-    -keyout /etc/nginx/ssl/server.key
+    -keyout /etc/nginx/ssl/server.key \
     -out /etc/nginx/ssl/server.crt
     
 

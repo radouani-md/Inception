@@ -1,7 +1,7 @@
 services:
   nginx:
-    build:
-      context: requirements/nginx
+    build: requirements/nginx
+
     depends_on:
       - wordpress
 
@@ -9,6 +9,7 @@ services:
 
     ports:
       - "443:443"
+
     container_name: nginx
 
     restart: on-failure
@@ -21,8 +22,7 @@ services:
 
 
   wordpress:
-    build:
-      context: requirements/wordpress
+    build: requirements/wordpress
     
     container_name: wordpress
 
@@ -55,12 +55,11 @@ services:
     
 
   mariadb:
-    build: 
-      context: requirements/mariadb
+    build: requirements/mariadb
     
     container_name: mariadb
 
-    image: :version
+    image: mariadb:version
 
     restart: on-failure
 
@@ -78,21 +77,19 @@ services:
 
 
   portfolio:
-    build:
-      context: requirements/bonus/static_website
+    build: requirements/bonus/static_website
     
     container_name: portfolio
 
     image: portfolio:version
 
     ports:
-      - 80:80
+      - 3344:3344
 
     restart: on-failure
 
   adminer:
-    build:
-      context: requirements/bonus/adminer
+    build: requirements/bonus/adminer
     
     container_name: adminer
 
@@ -107,8 +104,7 @@ services:
       - mariadb
   
   redis:
-    build:
-      context: requirements/bonus/redis
+    build: requirements/bonus/redis
     
     container_name: redis
 
@@ -120,8 +116,7 @@ services:
     restart: on-failure
   
   portainer:
-    build:
-      context: ./requirements/bonus/portainer
+    build: ./requirements/bonus/portainer
 
     container_name: portainer
 
@@ -134,7 +129,7 @@ services:
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/mradouan/data/portainer:/data
+      - /home/m/data/portainer:/data
 
 volumes:
   mariadb-data:
@@ -142,14 +137,14 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/mradouan/data/mariadb
+      device: /home/m/data/mariadb
 
   wordpress-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/mradouan/data/wordpress
+      device: /home/m/data/wordpress
 
 networks:
   inception-network:

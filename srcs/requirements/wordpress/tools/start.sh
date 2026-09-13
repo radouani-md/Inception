@@ -4,8 +4,6 @@ set -e
 
 echo "starting WordPress container..."
 
-mkdir -p    
-
 
 if [ ! -f /var/www/html/wp-load.php ]; then
     echo "downloading WordPress..."

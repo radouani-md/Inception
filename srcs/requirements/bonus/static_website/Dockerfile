@@ -7,7 +7,7 @@ RUN apt-get update && \
 
 COPY conf/nginx.conf /etc/nginx/conf.d/nginx.conf
 
-COPY small-portfolio/* /var/www/html/
+COPY small-portfolio/index.html /var/www/html/index.html
 
 
 
