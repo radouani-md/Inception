@@ -26,7 +26,9 @@ you need the following installed locally:
 - docker compose
 - make
 
-### Compilation
+you need to copy .env before the repository path.
+
+### Run Work
 
 ```bash
 make

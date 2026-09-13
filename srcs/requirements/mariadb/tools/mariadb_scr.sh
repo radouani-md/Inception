@@ -12,7 +12,7 @@ echo "Creating WordPress database..."
 if [ ! -f /var/lib/mysql/.root_password_set ]; then
 
 mariadb -u root << EOF
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+ALTER USER root@localhost IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
 EOF
 touch /var/lib/mysql/.root_password_set
 fi  
