@@ -60,13 +60,10 @@ if ! wp core is-installed --allow-root --path=/var/www/html; then
         --path=/var/www/html
 
     wp config set WP_REDIS_HOST redis \
-        --type=constant \
         --allow-root \
         --path=/var/www/html
 
     wp config set WP_REDIS_PORT 6379 \
-        --raw \
-        --type=constant \
         --allow-root \
         --path=/var/www/html
 
@@ -78,6 +75,5 @@ if ! wp core is-installed --allow-root --path=/var/www/html; then
 else
     echo "WordPress is already installed"
 fi
-
 
 exec php-fpm8.2 -F

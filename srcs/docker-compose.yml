@@ -129,7 +129,7 @@ services:
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/mradouan/data/portainer:/data
+      - /home/kali/data/portainer:/data
 
 volumes:
   mariadb-data:
@@ -137,14 +137,14 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/mradouan/data/mariadb
+      device: /home/kali/data/mariadb
 
   wordpress-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/mradouan/data/wordpress
+      device: /home/kali/data/wordpress
 
 networks:
   inception-network:
