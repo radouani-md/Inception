@@ -21,10 +21,10 @@ ps :
 	$(COMPOSE) ps
 
 clean :
-	$(COMPOSE) down --volumes --rmi all
-	sudo rm -rf $(DATA_PATH)
+	$(COMPOSE) down --rmi all
 
 fclean: clean
-	docker system prune -a --volumes -f
+	$(COMPOSE) down --volumes
+	sudo rm -rf $(DATA_PATH)
 
 re : fclean all
